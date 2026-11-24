@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    stop_grace_period: 30s
+    environment:
+      TZ: "Asia/Jakarta"
+    ports:
+      - target: 8971
+        published: 8971
+        mode: ingress
+      - target: 5000
+        published: 5001
+        mode: ingress
+      - target: 8554
+        published: 8554
+        mode: ingress
+      - target: 8555
+        published: 8555
+        protocol: tcp
+        mode: ingress
+      - target: 8555
+        published: 8555
+        protocol: udp
+        mode: ingress
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/frigate/config:/config
+      - frigate_cctv_nfs:/media/frigate
+      # Long-syntax tmpfs wajib menggunakan integer (bytes). 1073741824 = 1 GB
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1073741824
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 1073741824
+    networks:
+      - proxy-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.shinobi == true
+      restart_policy:
+        condition: any
+
+networks:
+  proxy-net:
+    external: true
+
+volumes:
+  frigate_cctv_nfs:
+    driver: local
+    driver_opts:
+      type: "nfs"
+      o: "addr=<NFS_SERVER_IP>,nfsvers=4,rw,tcp,hard,timeo=600,retrans=2,noatime,nodiratime,rsize=1048576,wsize=1048576,actimeo=60"
+      device: ":/<PATH_TO_NFS_EXPORT>"

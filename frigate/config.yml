@@ -1,0 +1,322 @@
+mqtt:
+  enabled: true
+  host: 192.168.100.100 # Ganti jika IP-nya bukan ini
+  port: 1883
+
+database:
+  path: /config/frigate.db
+
+version: 0.18-0
+
+# --- DETECTOR ---
+# VM CPU = QEMU generic (tanpa AVX). 4 detector CPU supaya antrean deteksi lebih cepat.
+detectors:
+  cpu1:
+    type: cpu
+    num_threads: 2
+  cpu2:
+    type: cpu
+    num_threads: 2
+  cpu3:
+    type: cpu
+    num_threads: 2
+  cpu4:
+    type: cpu
+    num_threads: 2
+
+# --- PENGATURAN MOTION & DETEKSI ---
+motion:
+  threshold: 45             # Abaikan kedipan cahaya/angin ringan agar CPU detector hemat
+  contour_area: 150         # Abaikan daun jatuh / objek kecil <150px agar tidak memicu AI detector
+  improve_contrast: true
+
+detect:
+  enabled: true
+  fps: 5                    # 5 fps stabil dengan 0 skipped_fps jauh lebih akurat daripada 8 fps yang di-skip
+  min_initialized: 4        # Harus terlihat minimal 4 frame (0.8 dtk) sebelum dianggap orang (cegah pintu/daun kilat)
+  max_disappeared: 50       # 50 frame @ 5fps = 10 detik tetap pertahankan ID orang kalau tertutup tiang sesaat
+  stationary:
+    interval: 10            # Cek ulang objek tiap 10 frame (2 detik)
+    threshold: 80           # Toleransi jitter bounding box agar benda diam tidak ke-reset
+    max_frames:
+      objects:
+        person: 75          # Hapus otomatis objek diam setelah +75 frame (15 detik) agar kursi/tas/jaket tidak nyangkut jadi person
+
+objects:
+  track:
+    - person
+  filters:
+    person:
+      min_score: 0.66       # Tolak objek skor rendah (<66% seperti daun/pintu)
+      threshold: 0.75       # Hanya konfirmasi person jika median skor >= 75%
+      min_area: 8000        # Abaikan objek kecil (<8000 px)
+
+review:
+  alerts:
+    labels:
+      - person
+    cutoff_time: 60         # Gabungkan event dalam 60 detik supaya rekaman tidak terpotong-potong pendek
+  detections:
+    cutoff_time: 60
+
+snapshots:
+  enabled: true
+  bounding_box: true
+  retain:
+    default: 14
+
+# --- PENGATURAN RECORD (UNIVERSAL & HEMAT NFS) ---
+record:
+  enabled: true
+  continuous:
+    days: 0 # Mencegah perekaman 24/7 penuh untuk menghemat kapasitas NFS
+  motion:
+    days: 14 # Simpan segmen yang ada gerakan selama 14 hari
+  alerts:
+    pre_capture: 10         # Rekam 10 detik sebelum orang terdeteksi
+    post_capture: 15        # Rekam +15 detik setelah orang hilang
+    retain:
+      days: 14
+      mode: all             # WAJIB 'all' agar segmen +15 detik setelah orang hilang tidak dihapus walau tanpa gerakan
+  detections:
+    pre_capture: 10
+    post_capture: 15
+    retain:
+      days: 14
+      mode: all             # WAJIB 'all' agar segmen pre/post capture selalu tersimpan utuh
+
+cameras:
+  a:
+    enabled: true
+    friendly_name: Senayan Lorong Dapur
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:qwe12345@172.16.30.118:554
+          roles:
+            - detect
+            - record
+            - audio
+    detect:
+      width: 1280
+      height: 720
+      enabled: true
+      fps: 5
+      min_initialized: 4
+      max_disappeared: 50
+      stationary:
+        interval: 10
+        threshold: 80
+        max_frames:
+          objects:
+            person: 75
+    live:
+      streams:
+        Stream 1: lorong-nata-ado
+
+    objects:
+      track:
+        - person
+      filters:
+        person:
+          min_score: 0.66
+          threshold: 0.75
+          min_area: 8000
+  lorong_gazebo:
+    enabled: true
+    friendly_name: Senayan Lorong Gazebo
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:qwe12345@172.16.30.148:554
+          roles:
+            - detect
+            - record
+            - audio
+    detect:
+      width: 1280
+      height: 720
+      enabled: true
+      fps: 5
+      min_initialized: 4
+      max_disappeared: 50
+      stationary:
+        interval: 10
+        threshold: 80
+        max_frames:
+          objects:
+            person: 75
+    live:
+      streams:
+        Stream 1: lorong_gazebo
+
+    objects:
+      track:
+        - person
+      filters:
+        person:
+          min_score: 0.66
+          threshold: 0.75
+          min_area: 8000
+  tangga:
+    enabled: true
+    friendly_name: Senayan Tangga
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:qwe12345@172.16.30.99:554/
+          roles:
+            - detect
+            - audio
+            - record
+    detect:
+      width: 1280
+      height: 720
+      enabled: true
+      fps: 5
+      min_initialized: 4
+      max_disappeared: 50
+      stationary:
+        interval: 10
+        threshold: 80
+        max_frames:
+          objects:
+            person: 75
+    live:
+      streams:
+        Stream 1: tangga
+
+    objects:
+      track:
+        - person
+      filters:
+        person:
+          min_score: 0.66
+          threshold: 0.75
+          min_area: 8000
+          mask:
+            rak_sepatu:
+              friendly_name: Rak Sepatu Bawah Tangga
+              enabled: true
+              coordinates: 0.29,0.65,0.46,0.65,0.46,0.99,0.29,0.99
+            kursi_tas_merah:
+              friendly_name: Kursi Tas Belanja Merah
+              enabled: true
+              coordinates: 0.27,0.28,0.43,0.28,0.43,0.58,0.27,0.58
+  jogja_halaman_1:
+    enabled: true
+    friendly_name: Jogja Halaman 1
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:VBRLUC@192.168.135.11:554/
+          roles:
+            - detect
+            - record
+            - audio
+    detect:
+      width: 1280
+      height: 720
+      enabled: true
+      fps: 5
+      min_initialized: 4
+      max_disappeared: 50
+      stationary:
+        interval: 10
+        threshold: 80
+        max_frames:
+          objects:
+            person: 75
+    objects:
+      filters:
+        person:
+          min_score: 0.68
+          threshold: 0.76
+          min_area: 10000   # Cegah botol (1204 px) & sangkar burung (3400-5100 px) terbaca sebagai person
+          mask:
+            rak_botol_kiri:
+              friendly_name: Rak Botol Kiri
+              enabled: true
+              coordinates: 0.0,0.45,0.23,0.45,0.23,0.66,0.0,0.66
+            sangkar_burung:
+              friendly_name: Sangkar Burung Belakang
+              enabled: true
+              coordinates: 0.64,0.15,0.82,0.15,0.82,0.48,0.64,0.48
+      track:
+        - person
+    live:
+      streams:
+        Stream 1: jogja_halaman_1
+
+  jogja_tangga1:
+    enabled: true
+    friendly_name: Jogja Tangga 1
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:QPLRMP@172.16.20.18:554
+          roles:
+            - detect
+            - audio
+            - record
+    detect:
+      width: 1280
+      height: 720
+      enabled: true
+      fps: 5
+      min_initialized: 4
+      max_disappeared: 50
+      stationary:
+        interval: 10
+        threshold: 80
+        max_frames:
+          objects:
+            person: 75
+    objects:
+      filters:
+        person:
+          min_score: 0.70   # Cegah tas belanja merah di kursi (66%) terbaca sebagai person
+          threshold: 0.76   # Orang asli di tangga skornya 80%-84%
+          min_area: 15000
+      track:
+        - person
+    motion:
+      mask:
+        jendela_tanaman:
+          friendly_name: Jendela Tanaman
+          enabled: true
+          coordinates: 0.59,0.0,0.76,0.0,0.76,0.28,0.59,0.28
+    live:
+      streams:
+        Stream 1: jogja_tangga1
+
+go2rtc:
+  streams:
+    lorong_gazebo:
+      - rtsp://admin:qwe12345@172.16.30.148:554
+    tangga:
+      - rtsp://admin:qwe12345@172.16.30.99:554/
+    jogja_halaman_1:
+      - rtsp://admin:VBRLUC@192.168.135.11:554/
+    jogja_tangga1:
+      - rtsp://admin:QPLRMP@172.16.20.18:554
+    lorong-nata-ado:
+      - rtsp://admin:qwe12345@172.16.30.118:554
+camera_groups:
+  YK:
+    order: 1
+    icon: LuFileWarning
+    cameras:
+      - jogja_halaman_1
+      - jogja_tangga1
+  Senayan:
+    order: 2
+    icon: LuAArrowDown
+    cameras:
+      - a
+      - tangga
+      - lorong_gazebo
+
+auth:
+  roles:
+    senayan:
+      - a
+      - lorong_gazebo
+    Jogja:
+      - jogja_halaman_1
+      - jogja_tangga1

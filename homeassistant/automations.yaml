@@ -1,0 +1,67 @@
+- id: '1792680111039'
+  alias: Notif Telegram CCTV
+  description: Kirim warning foto dan video clip Frigate ke Telegram per Site + Grup
+    Gabungan
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+    payload: new
+    value_template: '{{ value_json[''type''] }}'
+    id: mulai
+  - trigger: mqtt
+    topic: frigate/events
+    payload: end
+    value_template: '{{ value_json[''type''] }}'
+    id: selesai
+  actions:
+  - variables:
+      event_id: '{{ trigger.payload_json[''after''][''id''] }}'
+      camera: '{{ trigger.payload_json[''after''][''camera''] }}'
+      camera_name: '{{ camera | replace(''_'', '' '') | title }}'
+      label: '{{ trigger.payload_json[''after''][''label''] | title }}'
+      id_grup_semua: -1004466497540
+      id_grup_jogja: -1003814068392
+      id_grup_senayan: -1004436444223
+      kamera_jogja:
+      - jogja_halaman_1
+      - jogja_tangga1
+      target_chats: "{% if camera in kamera_jogja or 'jogja' in camera %}\n  {{ [id_grup_semua,\
+        \ id_grup_jogja] }}\n{% else %}\n  {{ [id_grup_semua, id_grup_senayan] }}\n\
+        {% endif %}"
+      start_ts: '{{ trigger.payload_json[''after''][''start_time''] | float | int
+        }}'
+      end_ts: '{{ (trigger.payload_json[''after''][''end_time''] or now().timestamp())
+        | float | int }}'
+      event_dur: '{{ [0, (end_ts | int) - (start_ts | int)] | max }}'
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: mulai
+      sequence:
+      - action: telegram_bot.send_photo
+        continue_on_error: true
+        data:
+          chat_id: '{{ target_chats }}'
+          url: http://127.0.0.1:8123/api/frigate/notifications/{{ event_id }}/snapshot.jpg?bbox=1
+          caption: 🚨 Peringatan! Terdeteksi {{ label }} di kamera {{ camera_name }}
+    - conditions:
+      - condition: trigger
+        id: selesai
+      sequence:
+      - delay:
+          seconds: 15
+      - action: telegram_bot.send_video
+        continue_on_error: true
+        data:
+          chat_id: '{{ target_chats }}'
+          url: '{% if (event_dur | int) > 150 %}http://192.168.100.100:5001/api/{{
+            camera }}/start/{{ (start_ts | int) - 10 }}/end/{{ (start_ts | int) +
+            170 }}/clip.mp4{% else %}http://127.0.0.1:8123/api/frigate/notifications/{{
+            event_id }}/clip.mp4?padding=10{% endif %}'
+          caption: '{% if (event_dur | int) > 150 %}🎥 Video rekaman {{ label }} di
+            kamera {{ camera_name }} (dipotong 3 mnt awal dari total {{ (event_dur
+            | int) // 60 }}m{{ ''%02d'' % ((event_dur | int) % 60) }}d agar aman dikirim
+            Telegram; rekaman penuh ada di Frigate){% else %}🎥 Video rekaman {{ label
+            }} di kamera {{ camera_name }}{% endif %}'
+  mode: parallel
+  max: 10

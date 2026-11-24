@@ -1,0 +1,16 @@
+# Security & Credential Protection
+# File secrets.yaml diabaikan secara default agar token/password tidak bocor ke publik
+homeassistant/secrets.yaml
+
+# System & OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*~
+
+# Opsional: Jika repository GitHub ini bersifat PUBLIC (terbuka untuk umum),
+# aktifkan (uncomment) baris di bawah agar IP kamera, password RTSP, dan IP internal tetap privat:
+# frigate/config.yml
+# homeassistant/automations.yaml
+# docker/frigate-stack.yml
