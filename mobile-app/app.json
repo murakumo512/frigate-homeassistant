@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Frigate CCTV",
+    "slug": "frigate-mobile",
+    "version": "2.3.1",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#090d16"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "id.labjaringanukdw.frigate"
+    },
+    "android": {
+      "package": "id.labjaringanukdw.frigate",
+      "versionCode": 3,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#090d16",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Izinkan autentikasi biometrik untuk membuka Frigate CCTV."
+        }
+      ]
+    ]
+  }
+}

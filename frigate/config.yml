@@ -69,7 +69,7 @@ snapshots:
 record:
   enabled: true
   continuous:
-    days: 0 # Mencegah perekaman 24/7 penuh untuk menghemat kapasitas NFS
+    days: 1 # Simpan rekaman 24 jam penuh selama 1 hari (estimasi ~50-100 GB untuk 5 kamera)
   motion:
     days: 14 # Simpan segmen yang ada gerakan selama 14 hari
   alerts:

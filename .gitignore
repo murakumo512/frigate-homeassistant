@@ -1,6 +1,16 @@
 # Security & Credential Protection
-# File secrets.yaml diabaikan secara default agar token/password tidak bocor ke publik
+# File secrets.yaml diabaikan secara default agar token/password tidak bocor
 homeassistant/secrets.yaml
+
+# Build Artifacts & Binary (upload APK via GitHub Releases, bukan git commit)
+*.apk
+*.aab
+*.keystore
+mobile-app/node_modules/
+mobile-app/android/
+mobile-app/ios/
+mobile-app/.expo/
+mobile-app/dist/
 
 # System & OS Files
 .DS_Store
@@ -10,7 +20,7 @@ Thumbs.db
 *~
 
 # Opsional: Jika repository GitHub ini bersifat PUBLIC (terbuka untuk umum),
-# aktifkan (uncomment) baris di bawah agar IP kamera, password RTSP, dan IP internal tetap privat:
+# hapus tanda '#' di bawah agar IP kamera, password RTSP, & ID grup Telegram tetap privat:
 # frigate/config.yml
 # homeassistant/automations.yaml
 # docker/frigate-stack.yml

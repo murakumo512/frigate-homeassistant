@@ -1,0 +1,57 @@
+# Docker Compose Standalone (Single Node — TANPA Docker Swarm & TANPA Portainer)
+# Jalankan dengan: docker compose -f docker/docker-compose.standalone.yml up -d
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ../mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Jakarta
+    ports:
+      - "8123:8123"
+    volumes:
+      - ../homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - mosquitto
+
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    restart: unless-stopped
+    stop_grace_period: 30s
+    shm_size: "1gb"
+    environment:
+      - TZ=Asia/Jakarta
+    ports:
+      - "8971:8971"
+      - "5001:5000"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ../frigate:/config
+      - ./frigate-media:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1073741824
+    depends_on:
+      - mosquitto
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
